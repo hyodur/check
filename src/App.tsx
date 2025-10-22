@@ -8,29 +8,34 @@ import HomeworkTracker from './components/HomeworkTracker';
 const STORAGE_KEY = 'homework-tracker-data';
 
 function App() {
-  const [classData, setClassData] = useState<ClassData>({
-    students: [],
-    homeworks: [],
+  const [classData, setClassData] = useState<ClassData>(() => {
+    // 초기 로드 시 로컬 스토리지에서 데이터 읽기
+    try {
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        console.log('저장된 데이터 로드:', parsed);
+        return parsed;
+      }
+    } catch (error) {
+      console.error('데이터 로드 실패:', error);
+    }
+    return {
+      students: [],
+      homeworks: [],
+    };
   });
 
   const [activeTab, setActiveTab] = useState<'tracker' | 'students' | 'homework'>('tracker');
 
-  // 로컬 스토리지에서 데이터 불러오기
-  useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setClassData(parsed);
-      } catch (error) {
-        console.error('데이터 로드 실패:', error);
-      }
-    }
-  }, []);
-
   // 데이터 변경 시 로컬 스토리지에 저장
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(classData));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(classData));
+      console.log('데이터 저장됨:', classData);
+    } catch (error) {
+      console.error('데이터 저장 실패:', error);
+    }
   }, [classData]);
 
   // 학생 추가
@@ -42,6 +47,18 @@ function App() {
     setClassData(prev => ({
       ...prev,
       students: [...prev.students, newStudent],
+    }));
+  };
+
+  // 여러 학생 일괄 추가
+  const addMultipleStudents = (names: string[]) => {
+    const newStudents: Student[] = names.map((name, index) => ({
+      id: (Date.now() + index).toString(),
+      name,
+    }));
+    setClassData(prev => ({
+      ...prev,
+      students: [...prev.students, ...newStudents],
     }));
   };
 
@@ -140,6 +157,7 @@ function App() {
             students={classData.students}
             onAddStudent={addStudent}
             onDeleteStudent={deleteStudent}
+            onAddMultipleStudents={addMultipleStudents}
           />
         )}
         {activeTab === 'homework' && (
